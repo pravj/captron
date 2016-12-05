@@ -18,6 +18,8 @@ type Entry struct {
 	// the last time the job was run. This is zero time if the job has not been
 	// run.
 	Prev time.Time
+
+	index int
 }
 
 // byTime is a handy wrapper to chronologically sort entries.
@@ -59,6 +61,7 @@ type Cron struct {
 
 	sync.Mutex
 	running bool
+	total int
 	entries []*Entry
 }
 
@@ -91,26 +94,33 @@ func (c *Cron) isActive() bool {
 //
 // if cron instant is not running, adding to entries is trivial.
 // otherwise, to prevent data-race, adds through channel.
-func (c *Cron) Add(s Schedule, j Job) {
+func (c *Cron) Add(s Schedule, j Job) int {
 
 	entry := &Entry{
 		Schedule: s,
 		Job:      j,
 	}
 
+	c.Lock()
+	c.total += 1
+	entry.index = c.total
+	c.Unlock()
+
 	if !c.isActive() {
 		c.Lock()
 		c.entries = append(c.entries, entry)
 		c.Unlock()
 
-		return
+		return entry.index
 	}
 	c.add <- entry
+
+	return entry.index
 }
 
 // AddFunc registers the Job function for the given Schedule.
-func (c *Cron) AddFunc(s Schedule, j func()) {
-	c.Add(s, JobFunc(j))
+func (c *Cron) AddFunc(s Schedule, j func()) int {
+	return c.Add(s, JobFunc(j))
 }
 
 // Stop halts cron instant c from running.
