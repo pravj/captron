@@ -1,6 +1,7 @@
 package gron
 
 import (
+	//"fmt"
 	"sort"
 	"time"
 	"sync"
@@ -57,6 +58,7 @@ type Job interface {
 // may be inspected.
 type Cron struct {
 	add     chan *Entry
+	remove  chan int
 	stop    chan struct{}
 
 	sync.Mutex
@@ -70,6 +72,7 @@ func New() *Cron {
 	return &Cron{
 		stop: make(chan struct{}),
 		add:  make(chan *Entry),
+		remove: make(chan int),
 	}
 }
 
@@ -116,6 +119,11 @@ func (c *Cron) Add(s Schedule, j Job) int {
 	c.add <- entry
 
 	return entry.index
+}
+
+// Remove deletes a job with a given identifier.
+func (c *Cron) Remove(id int) {
+	c.remove <- id
 }
 
 // AddFunc registers the Job function for the given Schedule.
@@ -175,6 +183,12 @@ func (c *Cron) run() {
 		case e := <-c.add:
 			e.Next = e.Schedule.Next(time.Now())
 			c.entries = append(c.entries, e)
+		case id := <-c.remove:
+			for ix, e := range c.entries {
+				if e.index == id {
+					c.entries = append(c.entries[:ix], c.entries[ix+1:]...)
+				}
+			}
 		case <-c.stop:
 			return // terminate go-routine.
 		}
