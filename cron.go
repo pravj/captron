@@ -1,8 +1,10 @@
 package gron
 
 import (
+	//"fmt"
 	"sort"
 	"time"
+	"sync"
 )
 
 // Entry consists of a schedule and the job to be executed on that schedule.
@@ -17,6 +19,8 @@ type Entry struct {
 	// the last time the job was run. This is zero time if the job has not been
 	// run.
 	Prev time.Time
+
+	index int
 }
 
 // byTime is a handy wrapper to chronologically sort entries.
@@ -53,10 +57,14 @@ type Job interface {
 // specified by the schedule. It may also be started, stopped and the entries
 // may be inspected.
 type Cron struct {
-	entries []*Entry
-	running bool
 	add     chan *Entry
+	remove  chan int
 	stop    chan struct{}
+
+	sync.Mutex
+	running bool
+	total int
+	entries []*Entry
 }
 
 // New instantiates new Cron instant c.
@@ -64,45 +72,76 @@ func New() *Cron {
 	return &Cron{
 		stop: make(chan struct{}),
 		add:  make(chan *Entry),
+		remove: make(chan int),
 	}
 }
 
 // Start signals cron instant c to get up and running.
 func (c *Cron) Start() {
+	c.Lock()
 	c.running = true
+	c.Unlock()
+
 	go c.run()
+}
+
+// isActive returns the current state of the Cron instance
+func (c *Cron) isActive() bool {
+	c.Lock()
+	defer c.Unlock()
+
+	return c.running
 }
 
 // Add appends schedule, job to entries.
 //
 // if cron instant is not running, adding to entries is trivial.
 // otherwise, to prevent data-race, adds through channel.
-func (c *Cron) Add(s Schedule, j Job) {
+func (c *Cron) Add(s Schedule, j Job) int {
 
 	entry := &Entry{
 		Schedule: s,
 		Job:      j,
 	}
 
-	if !c.running {
+	c.Lock()
+	c.total += 1
+	entry.index = c.total
+	c.Unlock()
+
+	if !c.isActive() {
+		c.Lock()
 		c.entries = append(c.entries, entry)
-		return
+		c.Unlock()
+
+		return entry.index
 	}
 	c.add <- entry
+
+	return entry.index
+}
+
+// Remove deletes a job with a given identifier.
+func (c *Cron) Remove(id int) {
+	c.remove <- id
 }
 
 // AddFunc registers the Job function for the given Schedule.
-func (c *Cron) AddFunc(s Schedule, j func()) {
-	c.Add(s, JobFunc(j))
+func (c *Cron) AddFunc(s Schedule, j func()) int {
+	return c.Add(s, JobFunc(j))
 }
 
 // Stop halts cron instant c from running.
 func (c *Cron) Stop() {
 
-	if !c.running {
+	if !c.isActive() {
 		return
 	}
+
+	c.Lock()
 	c.running = false
+	c.Unlock()
+
 	c.stop <- struct{}{}
 }
 
@@ -144,6 +183,12 @@ func (c *Cron) run() {
 		case e := <-c.add:
 			e.Next = e.Schedule.Next(time.Now())
 			c.entries = append(c.entries, e)
+		case id := <-c.remove:
+			for ix, e := range c.entries {
+				if e.index == id {
+					c.entries = append(c.entries[:ix], c.entries[ix+1:]...)
+				}
+			}
 		case <-c.stop:
 			return // terminate go-routine.
 		}
