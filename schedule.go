@@ -1,10 +1,10 @@
-package gron
+package captron
 
 import (
 	"errors"
 	"time"
 
-	"github.com/pravj/gron/xtime"
+	"github.com/pravj/captron/xtime"
 )
 
 // Schedule is the interface that wraps the basic Next method.

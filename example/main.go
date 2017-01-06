@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/roylee0704/gron"
-	"github.com/roylee0704/gron/xtime"
+	"github.com/pravj/captron"
+	"github.com/pravj/captron/xtime"
 )
 
 type printJob struct{ Msg string }
@@ -17,18 +17,18 @@ func (p printJob) Run() {
 func main() {
 
 	var (
-		daily     = gron.Every(1 * xtime.Day)
-		weekly    = gron.Every(1 * xtime.Week)
-		monthly   = gron.Every(30 * xtime.Day)
-		yearly    = gron.Every(365 * xtime.Day)
+		daily     = captron.Every(1 * xtime.Day)
+		weekly    = captron.Every(1 * xtime.Week)
+		monthly   = captron.Every(30 * xtime.Day)
+		yearly    = captron.Every(365 * xtime.Day)
 		purgeTask = func() { fmt.Println("purge unwanted records") }
 		printFoo  = printJob{"Foo"}
 		printBar  = printJob{"Bar"}
 	)
 
-	c := gron.New()
+	c := captron.New()
 
-	c.AddFunc(gron.Every(1*time.Hour), func() {
+	c.AddFunc(captron.Every(1*time.Hour), func() {
 		fmt.Println("Every 1 hour")
 	})
 	c.Start()

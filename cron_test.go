@@ -1,4 +1,4 @@
-package gron
+package captron
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pravj/gron/xtime"
+	"github.com/pravj/captron/xtime"
 )
 
 // Most test jobs scheduled to run at 1 second mark.

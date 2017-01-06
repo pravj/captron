@@ -1,11 +1,11 @@
-package gron
+package captron
 
 import (
 	"errors"
 	"testing"
 	"time"
 
-	"github.com/pravj/gron/xtime"
+	"github.com/pravj/captron/xtime"
 )
 
 func TestPeriodicAtNext(t *testing.T) {

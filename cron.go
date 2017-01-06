@@ -1,4 +1,4 @@
-package gron
+package captron
 
 import (
 	"sort"
@@ -199,7 +199,7 @@ func (c Cron) Entries() []*Entry {
 	return c.entries
 }
 
-// JobFunc is an adapter to allow the use of ordinary functions as gron.Job
+// JobFunc is an adapter to allow the use of ordinary functions as captron.Job
 // If f is a function with the appropriate signature, JobFunc(f) is a handler
 // that calls f.
 //

@@ -1,9 +1,10 @@
-# gron
-[![Build Status](https://semaphoreci.com/api/v1/roylee0704/gron/branches/master/badge.svg)](https://semaphoreci.com/roylee0704/gron)
-[![Go Report Card](https://goreportcard.com/badge/github.com/roylee0704/gron)](https://goreportcard.com/report/github.com/roylee0704/gron)
-[![GoDoc](https://godoc.org/github.com/roylee0704/gron?status.svg)](https://godoc.org/github.com/roylee0704/gron)
+# captron
+[![Go Report Card](https://goreportcard.com/badge/github.com/pravj/captron)](https://goreportcard.com/report/github.com/pravj/captron)
+[![GoDoc](https://godoc.org/github.com/pravj/captron?status.svg)](https://godoc.org/github.com/pravj/captron)
 
-Gron provides a clear syntax for writing and deploying cron jobs.
+An 'apt' cron job service in golang.
+
+###### Improved version of [roylee0704/gron](https://github.com/roylee0704/gron).
 
 ## Goals
 
@@ -15,7 +16,7 @@ Gron provides a clear syntax for writing and deploying cron jobs.
 ## Installation
 
 ```sh
-$ go get github.com/roylee0704/gron
+$ go get github.com/pravj/captron
 ```
 
 ## Usage
@@ -27,12 +28,12 @@ package main
 import (
 	"fmt"
 	"time"
-	"github.com/roylee0704/gron"
+	"github.com/pravj/captron"
 )
 
 func main() {
-	c := gron.New()
-	c.AddFunc(gron.Every(1*time.Hour), func() {
+	c := captron.New()
+	c.AddFunc(captron.Every(1*time.Hour), func() {
 		fmt.Println("runs every hour.")
 	})
 	c.Start()
@@ -44,30 +45,30 @@ func main() {
 All scheduling is done in the machine's local time zone (as provided by the Go [time package](http://www.golang.org/pkg/time)).
 
 
-Setup basic periodic schedule with `gron.Every()`.
+Setup basic periodic schedule with `captron.Every()`.
 
 ```go
-gron.Every(1*time.Second)
-gron.Every(1*time.Minute)
-gron.Every(1*time.Hour)
+captron.Every(1*time.Second)
+captron.Every(1*time.Minute)
+captron.Every(1*time.Hour)
 ```
 
-Also support `Day`, `Week` by importing `gron/xtime`:
+Also support `Day`, `Week` by importing `captron/xtime`:
 ```go
-import "github.com/roylee0704/gron/xtime"
+import "github.com/pravj/captron/xtime"
 
-gron.Every(1 * xtime.Day)
-gron.Every(1 * xtime.Week)
+captron.Every(1 * xtime.Day)
+captron.Every(1 * xtime.Week)
 ```
 
 Schedule to run at specific time with `.At(hh:mm)`
 ```go
-gron.Every(30 * xtime.Day).At("00:00")
-gron.Every(1 * xtime.Week).At("23:59")
+captron.Every(30 * xtime.Day).At("00:00")
+captron.Every(1 * xtime.Week).At("23:59")
 ```
 
 #### Custom Job Type
-You may define custom job types by implementing `gron.Job` interface: `Run()`.
+You may define custom job types by implementing `captron.Job` interface: `Run()`.
 
 For example:
 
@@ -81,20 +82,20 @@ func (r Reminder) Run() {
 }
 ```
 
-After job has defined, instantiate it and schedule to run in Gron.
+After job has defined, instantiate it and schedule to run in captron.
 ```go
-c := gron.New()
+c := captron.New()
 r := Reminder{ "Feed the baby!" }
-c.Add(gron.Every(8*time.Hour), r)
+c.Add(captron.Every(8*time.Hour), r)
 c.Start()
 ```
 
 #### Custom Job Func
-You may register `Funcs` to be executed on a given schedule. Gron will run them in their own goroutines, asynchronously.
+You may register `Funcs` to be executed on a given schedule. captron will run them in their own goroutines, asynchronously.
 
 ```go
-c := gron.New()
-c.AddFunc(gron.Every(1*time.Second), func() {
+c := captron.New()
+c.AddFunc(captron.Every(1*time.Second), func() {
 	fmt.Println("runs every second")
 })
 c.Start()
@@ -104,7 +105,7 @@ c.Start()
 #### Custom Schedule
 Schedule is the interface that wraps the basic `Next` method: `Next(p time.Duration) time.Time`
 
-In `gron`, the interface value `Schedule` has the following concrete types:
+In `captron`, the interface value `Schedule` has the following concrete types:
 
 - **periodicSchedule**. adds time instant t to underlying period p.
 - **atSchedule**. reoccurs every period p, at time components(hh:mm).
@@ -118,8 +119,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/roylee0704/gron"
-	"github.com/roylee0704/gron/xtime"
+	"github.com/pravj/captron"
+	"github.com/pravj/captron/xtime"
 )
 
 type PrintJob struct{ Msg string }
@@ -132,10 +133,10 @@ func main() {
 
 	var (
 		// schedules
-		daily     = gron.Every(1 * xtime.Day)
-		weekly    = gron.Every(1 * xtime.Week)
-		monthly   = gron.Every(30 * xtime.Day)
-		yearly    = gron.Every(365 * xtime.Day)
+		daily     = captron.Every(1 * xtime.Day)
+		weekly    = captron.Every(1 * xtime.Week)
+		monthly   = captron.Every(30 * xtime.Day)
+		yearly    = captron.Every(365 * xtime.Day)
 
 		// contrived jobs
 		purgeTask = func() { fmt.Println("purge aged records") }
@@ -143,17 +144,17 @@ func main() {
 		printBar  = printJob{"Bar"}
 	)
 
-	c := gron.New()
+	c := captron.New()
 
 	c.Add(daily.At("12:30"), printFoo)
 	c.AddFunc(weekly, func() { fmt.Println("Every week") })
 	c.Start()
 
-	// Jobs may also be added to a running Gron
+	// Jobs may also be added to a running captron
 	c.Add(monthly, printBar)
 	c.AddFunc(yearly, purgeTask)
 
-	// Stop Gron (running jobs are not halted).
+	// Stop captron (running jobs are not halted).
 	c.Stop()
 }
 ```
